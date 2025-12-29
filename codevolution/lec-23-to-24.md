@@ -102,7 +102,7 @@ const buffer = Buffer.from('Vishwas', 'utf-8');
 ### Accessing Buffer Data
 
 - **JSON Representation:** `buffer.toJSON()` returns an object showing the decimal Unicode values for each character.
-  - Example: `V` is represented as `84`.
+  - Example: `V` is represented as `86`.
 - **Raw Representation:** Logging the buffer directly (`console.log(buffer)`) shows the data in Hexadecimal (base-16).
   - Why Hex? Binary (0s and 1s) is too long to read easily. Hex is a more compact way to represent binary data.
 - **String Representation:** `buffer.toString()` converts the binary data back into a readable string.
