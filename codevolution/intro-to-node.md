@@ -8,7 +8,7 @@ NodeJs is an open-source, cross-platform, Javascript runtime environment.
 
 ## Why Learn NodeJs?
 
-- Built end-to-end Javascript applications
+- Build end-to-end Javascript applications
 - A number of major companies like LinkedIn, Netflix, Paypal have all migrated from other backend technologies to NodeJs
 - Fullstack development is one of the most sought out skill sets by companies
 - Huge community support
