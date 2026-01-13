@@ -102,3 +102,64 @@ Use this if you want every consumer to have their own separate data and state. I
 ## 5. Summary Tip
 
 Always be mindful of _what_ you are exporting. If you export an object, be prepared for side effects caused by caching. If you need isolation, always export the class or a factory function.
+
+## Extra notes
+
+### Why `require()` understands the file without `.js` extension but ESM import doesn't?
+
+It’s a great observation! This difference highlights a fundamental shift in how Node.js handles files between the older **CommonJS (CJS)** and the newer **ES Modules (ESM)**.
+
+> **The Short Answer:** CommonJS was designed with **"magic" resolution** for developer convenience, while ES Modules were designed for **"explicit" resolution** to ensure high performance and web compatibility.
+
+---
+
+#### 1. CommonJS (`require`): The "Searcher"
+
+When you use `require('./file')`, Node.js performs a series of "probes" behind the scenes. If you don't provide an extension, it tries to guess your intent by checking the file system in this order:
+
+1.  `file.js`
+2.  `file.json`
+3.  `file.node` (compiled binary modules)
+4.  If `./file` is a **directory**, it looks for an `index.js` inside that folder.
+
+**Trade-off:** While convenient, this has a **performance cost** because Node.js must make multiple file system calls just to locate a single file.
+
+---
+
+#### 2. ES Modules (`import`): The "Web Standard"
+
+ESM was designed to align with how browsers work. In a browser, if you fetch `/script`, the server doesn't know if you mean `.js`, `.ts`, or `.css`. You must be exact.
+
+By requiring the `.js` extension, ESM achieves two main goals:
+
+- **Performance:** Node.js goes straight to the exact file without "guessing" or pinging the file system multiple times.
+- **Standardization:** Code written this way is more likely to work natively in a browser without needing heavy build tools like Webpack or Vite.
+
+---
+
+#### 3. Node.js 22+ Evolution: Automatic Detection
+
+As of Node.js 22, the rules have become more flexible. Node can now detect the module type automatically without requiring `.mjs` or `"type": "module"` in `package.json`.
+
+- **Detection Logic:** If Node.js encounters a file that uses `import` or `export` syntax and it doesn't have a defined type, it will attempt to treat it as an ES Module.
+- **The "Extension" Catch:** Even though Node 22+ can detect that a file _is_ an ES Module, the **ESM Resolution Algorithm** still strictly requires the `.js` extension in your `import` statements to maintain web compatibility and performance.
+
+---
+
+#### Summary Comparison
+
+| Feature                | CommonJS (`require`)             | ES Modules (`import`)               |
+| :--------------------- | :------------------------------- | :---------------------------------- |
+| **Extension**          | **Optional** (defaults to `.js`) | **Required** (must be explicit)     |
+| **Directory Imports**  | Looks for `index.js`             | Not supported by default            |
+| **Node 22+ Detection** | Default/Fallback                 | Detected via `import/export` syntax |
+| **Philosophy**         | "Do what I mean" (Convenience)   | "Do what I say" (Predictability)    |
+
+---
+
+#### 💡 Pro-Tip
+
+If you prefer the CJS style and aren't worried about browser compatibility, you can bypass the extension requirement in Node.js by using the following flag:
+`node --experimental-specifier-resolution=node script.js`
+
+_Note: This is generally discouraged. It is best practice to get used to adding extensions for future-proof code._

@@ -139,3 +139,22 @@ node --watch index.js
 ```
 
 This will automatically restart your server every time you save a file.
+
+## Extras:
+
+1. `req` and `res` objects are streams. What is the main difference between the `req` object and the `res` object in terms of stream types (Readable vs. Writable)?
+
+   - `req` (The Request): This is a Readable Stream. It brings data into your server (like a user's login credentials). You "read" from it.
+   - `res` (The Response): This is a Writable Stream. You "write" data to it to send it back to the user.
+
+2. What happens to the client (browser) if you forget to call `res.end()`?
+
+   - If you never call `.end()`, the server keeps the connection open, thinking you have more to say.
+   - The Result: The user's browser will just show a "loading" spinner indefinitely until it eventually "Times Out." Always end your responses!
+
+When a user sends data to your server (like a login form), the data arrives in "chunks" (Buffers).
+
+3. Which event on the req object do we listen to for incoming chunks?
+   - We listen to the `'data'` event on the req object to get chunks.
+4. Which event tells us that all chunks have been received?
+   - We listen to the `'end'` event to know when the full body has arrived.
