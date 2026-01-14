@@ -1473,3 +1473,56 @@ After completing all challenges, revisit and optimize:
 **Good luck on your Node.js journey! 🚀**
 
 **Remember:** The goal isn't just to complete challenges, but to **understand deeply** how Node.js works under the hood. Take your time, experiment, break things, and learn!
+
+# 🏆 Challenge: Node.js Native HTTP Mastery
+
+### Objective
+
+[cite_start]Build a professional-grade HTTP server using only Node.js built-in modules[cite: 16]. [cite_start]This challenge reinforces **Streams**, **Async/Await**, **Buffer management**, and **Routing**—all core requirements for Week 1 of your Backend Mastery plan[cite: 5, 9, 12].
+
+---
+
+## 🛠️ Requirements
+
+### 1. Server Configuration
+
+- **Port**: The server must listen on port `4000`.
+- **Environment**: Use **ESM** (`import` syntax) and modern path handling (Node.js 22/24 updates).
+
+### 2. Routing Logic
+
+[cite_start]Implement a `switch` or `if/else` block to handle the following endpoints[cite: 16]:
+
+| Route    | Method   | Expected Behavior                                                                                                   |
+| :------- | :------- | :------------------------------------------------------------------------------------------------------------------ |
+| `/`      | **GET**  | [cite_start]Stream an `index.html` file using `fs.createReadStream` and `pipeline`[cite: 13, 18].                   |
+| `/about` | **GET**  | Return the plain text "About Page" with a `200 OK` status.                                                          |
+| `/echo`  | **POST** | Consume the request body using a `for await...of` loop, parse the JSON, and return `{"message": "Hello, [name]!"}`. |
+| `/echo`  | **GET**  | Return a `405 Method Not Allowed` status.                                                                           |
+| _Any_    | _Any_    | Return a `404 Not Found` status for undefined routes.                                                               |
+
+### 3. Technical Constraints
+
+- [cite_start]**Memory Efficiency**: You must **stream** the HTML file rather than using `readFileSync` to avoid memory bottlenecks[cite: 12].
+- [cite_start]**Safety**: Use `try/catch` blocks inside asynchronous logic to handle malformed JSON or file system errors[cite: 9].
+- **Headers**: Manually set the correct `Content-Type` for HTML (`text/html`), Plain Text (`text/plain`), and JSON (`application/json`).
+
+---
+
+## 🧠 Revision Self-Test
+
+_Before looking at your previous solution, ensure you can answer these:_
+
+1. Why is `import.meta.dirname` used instead of `__dirname` in modern Node.js?
+2. [cite_start]What happens to the server's RAM if 1,000 users request a large file simultaneously without streaming[cite: 12]?
+3. Why do we need `Buffer.concat(chunks)` before calling `.toString()` on a POST body?
+
+---
+
+## 📅 Success Criteria (Week 1 Plan)
+
+You have mastered this challenge if you can:
+
+- [cite_start][ ] Build this entire server from scratch in under 15 minutes[cite: 347].
+- [cite_start][ ] Explain the flow of data from a Readable Stream (`req`) to a Writable Stream (`res`)[cite: 12].
+- [cite_start][ ] Correctly handle edge cases like invalid JSON or missing files without the server crashing[cite: 347].
