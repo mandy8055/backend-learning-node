@@ -77,15 +77,31 @@ While the JS main thread is single-threaded, libuv maintains a pool of threads t
 
 ---
 
+## 5. Network I/O: Beyond the Thread Pool
+
+### Experiment 6: Asynchronous Network Requests (`https.request`)
+
+- **Setup:** Making multiple concurrent requests to `google.com` using the `https` module.
+- **Observation:** Whether making 1, 6, or 12 requests, the average time per request remains roughly the same (~200-300ms).
+- **Inference:** 1. `https.request` does **NOT** use the libuv thread pool. If it did, we would see a performance bottleneck after 4 requests. 2. Network I/O is not affected by the number of CPU cores.
+
+### How it Works: Kernel Delegation
+
+Unlike file operations or crypto tasks, network I/O is a **Network operation**, not a CPU-bound one. libuv delegates this work directly to the **Operating System Kernel**.
+
+- **Native Async Mechanisms:** libuv uses the fastest available method provided by the OS to poll the kernel for request completion:
+  - **epoll** (Linux)
+  - **kqueue** (macOS/BSD)
+  - **IOCP** (Windows)
+- **Scalability:** Relying on the kernel makes Node.js extremely scalable for networking, as it isn't limited by a small thread pool, but only by the OS kernel's capacity.
+
+---
+
 ## 💡 Modern Context & Gaps (Node v22+)
 
 ### io_uring (Linux Performance)
 
 In newer Node.js versions, `io_uring` provides a higher-performance interface for async I/O on Linux, potentially replacing the traditional thread pool method for certain tasks.
-
-### Beyond the Thread Pool (Network I/O)
-
-Network I/O (HTTP/Sockets) does **NOT** use the thread pool. It uses native OS notification mechanisms like `epoll` (Linux), `kqueue` (macOS), or `IOCP` (Windows), making it more efficient than file I/O.
 
 ### `os.availableParallelism()`
 
@@ -102,3 +118,7 @@ Node v22+ features native **test runners** and **watch mode** (`node --watch`), 
 ### Deprecation: `process.binding`
 
 Avoid using `process.binding('uv')`. It is deprecated. Access internal functionality through official APIs only.
+
+### `fetch` API vs `https.request`
+
+In modern Node (v18+), the global `fetch` API is built-in. It is generally preferred over the older `https.request` for its simpler Promise-based syntax. Under the hood, `fetch` (powered by `undici`) also utilizes the same kernel-delegation mechanisms, ensuring high performance for network I/O.
