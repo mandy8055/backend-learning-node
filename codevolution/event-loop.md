@@ -199,3 +199,132 @@ queueMicrotask(() => console.log('Standardized Microtask'));
 In Node v22, the V8 engine has a "Microtask Policy" that is set to `kExplicit`. This means Node.js manually tells V8 when to run microtasks (which is between every phase of the libuv event loop). This is why the interleaving of `nextTick` and `Promises` is so consistent in Node compared to some other JS environments.
 
 ---
+
+# 6. The Node.js Event Loop (Part 3: Timer Queue)
+
+## 7. The Timer Queue: Experiments & Inferences
+
+The Timer Queue contains callbacks from `setTimeout` and `setInterval`. While we call it a "queue" for simplicity, it is technically a **Min Heap** data structure.
+
+### A. Priority vs. Microtask Queues (Experiment 3)
+
+This experiment proves that microtasks (nextTick and Promises) always execute before timer callbacks, even if the timer delay is `0ms`.
+
+**Code:**
+
+```javascript
+setTimeout(() => console.log('this is setTimeout 1'), 0);
+setTimeout(() => console.log('this is setTimeout 2'), 0);
+setTimeout(() => console.log('this is setTimeout 3'), 0);
+
+process.nextTick(() => console.log('this is process.nextTick 1'));
+process.nextTick(() => {
+  console.log('this is process.nextTick 2');
+  process.nextTick(() => console.log('this is inner nextTick inside nextTick'));
+});
+process.nextTick(() => console.log('this is process.nextTick 3'));
+
+Promise.resolve().then(() => console.log('this is Promise.resolve 1'));
+Promise.resolve().then(() => {
+  console.log('this is Promise.resolve 2');
+  process.nextTick(() => console.log('this is inner nextTick inside Promise'));
+});
+Promise.resolve().then(() => console.log('this is Promise.resolve 3'));
+```
+
+**Output:**
+
+```
+this is process.nextTick 1
+this is process.nextTick 2
+this is process.nextTick 3
+this is inner nextTick inside nextTick
+this is Promise.resolve 1
+this is Promise.resolve 2
+this is Promise.resolve 3
+this is inner nextTick inside Promise
+this is setTimeout 1
+this is setTimeout 2
+this is setTimeout 3
+```
+
+**Inference:** **Callbacks in the microtask queues are executed before callbacks in the timer queue.**
+
+---
+
+### B. Interleaving Microtasks in Timers (Experiment 4)
+
+This experiment demonstrates that Node checks microtask queues _between_ individual timer callbacks.
+
+**Code:**
+
+```javascript
+setTimeout(() => console.log('this is setTimeout 1'), 0);
+setTimeout(() => {
+  console.log('this is setTimeout 2');
+  process.nextTick(() =>
+    console.log('this is inner nextTick inside setTimeout'),
+  );
+}, 0);
+setTimeout(() => console.log('this is setTimeout 3'), 0);
+```
+
+**Output:**
+
+```
+this is setTimeout 1
+this is setTimeout 2
+this is inner nextTick inside setTimeout
+this is setTimeout 3
+```
+
+**Inference:** **Microtask queues are checked and cleared after every single callback execution in the timer queue.** (Note: This matches modern browser behavior).
+
+---
+
+### C. Execution Order within Timers (Experiment 5)
+
+This experiment confirms the order of execution based on the delay provided.
+
+**Code:**
+
+```javascript
+setTimeout(() => console.log('this is setTimeout 1'), 1000);
+setTimeout(() => console.log('this is setTimeout 2'), 500);
+setTimeout(() => console.log('this is setTimeout 3'), 0);
+```
+
+**Output:**
+
+```
+this is setTimeout 3
+this is setTimeout 2
+this is setTimeout 1
+```
+
+**Inference:** Timer callbacks are executed in the order of their expiration (FIFO behavior once they are expired). The one with the least delay expires first and is queued for execution first.
+
+---
+
+## 💡 Modern Context & Gaps (Node v22+)
+
+### Minimum Delay
+
+In Node.js (and browsers), passing `0` to `setTimeout` doesn't truly mean 0 milliseconds. There is usually a small internal overhead (typically 1ms). This becomes important when comparing `setTimeout(..., 0)` with other async methods like `setImmediate` or I/O, as the timer might not actually be "expired" by the time the loop reaches the Timer phase.
+
+### Performance Tip: Precision
+
+Timers in Node.js are **not guaranteed** to run exactly at the millisecond specified. They run _after_ that duration has passed and when the Event Loop is in the Timer phase. If the Call Stack is busy with a heavy synchronous task, a `setTimeout(..., 10)` might actually take 100ms to execute.
+
+### `node:timers/promises`
+
+In modern Node v22+, you can use the promisified version of timers for cleaner `async/await` syntax:
+
+```javascript
+import { setTimeout } from 'node:timers/promises';
+
+await setTimeout(1000);
+console.log('Executed after 1 second');
+```
+
+This internally uses the same Timer Queue but wraps the callback in a Promise, allowing it to integrate with the Promise Microtask queue.
