@@ -328,3 +328,133 @@ console.log('Executed after 1 second');
 ```
 
 This internally uses the same Timer Queue but wraps the callback in a Promise, allowing it to integrate with the Promise Microtask queue.
+
+# 6. The Node.js Event Loop (Part 4: I/O Queue)
+
+## 1. What is the I/O Queue?
+
+The **I/O Queue** handles callbacks from most of the asynchronous methods found in Node's built-in modules. This includes File System operations (`fs`), network requests (`http`), and other OS-level interactions.
+
+While we often visualize it as a single queue, it is technically the result of the **Poll Phase** in libuv, where the event loop retrieves completed I/O events from the system or the thread pool.
+
+---
+
+## 2. I/O Queue: Experiments & Inferences
+
+### A. Experiment: I/O vs. Microtask Queues
+
+This experiment determines if I/O callbacks can jump ahead of microtasks.
+
+**Code:**
+
+```javascript
+const fs = require('fs');
+
+fs.readFile(__filename, () => {
+  console.log('this is read file 1');
+});
+
+process.nextTick(() => console.log('this is process.nextTick 1'));
+Promise.resolve().then(() => console.log('this is Promise.resolve 1'));
+```
+
+**Output:**
+
+```
+this is process.nextTick 1
+this is Promise.resolve 1
+this is read file 1
+```
+
+**Inference:** Callbacks in the **microtask queues (nextTick and Promises) are always executed before callbacks in the I/O queue**.
+
+---
+
+### B. Experiment: The Timer & I/O Race Condition
+
+When running a `setTimeout` with `0ms` delay alongside an I/O operation, the results are often inconsistent.
+
+**Code:**
+
+```javascript
+const fs = require('fs');
+
+fs.readFile(__filename, () => {
+  console.log('this is read file 1');
+});
+
+setTimeout(() => console.log('this is setTimeout 1'), 0);
+```
+
+**Observation:** You will notice that `read file 1` and `setTimeout 1` swap places across different executions.
+
+**Inference:** The order between Timers (0ms) and I/O is **non-deterministic**. This happens because:
+
+1. A `0ms` timer is actually a `1ms` timer internally.
+2. If the event loop enters the **Timer Phase** before `1ms` has passed, the timer isn't ready, and it moves to the **I/O Phase**.
+3. If the environment is slightly slower and `1ms` passes before the loop starts, the timer executes first.
+
+---
+
+### C. Experiment: Forcing Priority (Timer vs. I/O)
+
+To prove that the Timer phase technically precedes the I/O phase, we can use a "busy-wait" loop to ensure the timer has expired before the event loop reaches the timer phase.
+
+**Code:**
+
+```javascript
+const fs = require('fs');
+
+fs.readFile(__filename, () => console.log('this is read file 1'));
+setTimeout(() => console.log('this is setTimeout 1'), 0);
+
+for (let i = 0; i < 2000000000; i++) {} // Blocks the stack to let 1ms pass
+```
+
+**Output:**
+
+```
+this is setTimeout 1
+this is read file 1
+```
+
+**Inference:** In a single "tick," the **Timer queue is processed before the I/O queue**, provided the timer has already expired.
+
+---
+
+## 3. Visualizing the Sequence
+
+The sequence of execution for the queues we have covered so far is:
+
+1. **Microtask Queues:** `process.nextTick` followed by `Promise` callbacks.
+2. **Timer Queue:** Expired `setTimeout` and `setInterval` callbacks.
+3. **I/O Queue:** Completed I/O tasks (file system, network).
+
+---
+
+## 💡 Modern Context & Gaps (Node v22+)
+
+### I/O Polling vs. I/O Callbacks
+
+In technical documentation, you might see a distinction between "I/O Callbacks" and the "Poll Phase." Most I/O callbacks are executed in the **Poll Phase**. However, some rare callbacks (like those from certain internal errors) are executed in a separate "Pending Callbacks" phase immediately after Timers.
+
+### The libuv Thread Pool
+
+While network I/O is often handled by the OS Kernel (epoll/kqueue), File I/O (`fs`) is typically handled by the **libuv Thread Pool**. If the thread pool is exhausted (default is 4 threads), your I/O callbacks will be delayed even if the Event Loop is idle.
+
+### Performance Tip: `fs.promises`
+
+Modern Node.js development favors the `fs/promises` API.
+
+```javascript
+const fs = require('node:fs/promises');
+
+async function example() {
+  const data = await fs.readFile('file.txt');
+  // The code here runs as a Promise microtask after the I/O finishes
+}
+```
+
+Using `async/await` with I/O doesn't change the event loop phases, but it moves the "callback" logic into the **Promise Queue** for the next available check.
+
+---
