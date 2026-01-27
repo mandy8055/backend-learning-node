@@ -458,3 +458,91 @@ async function example() {
 Using `async/await` with I/O doesn't change the event loop phases, but it moves the "callback" logic into the **Promise Queue** for the next available check.
 
 ---
+
+# 6. The Node.js Event Loop (Part 5: I/O Polling)
+
+## 1. What is I/O Polling?
+
+I/O Polling is the mechanism by which the Event Loop checks for completed asynchronous I/O operations (like reading a file or a network request) and moves their associated callbacks into the **I/O Queue**.
+
+A common misconception is that callbacks enter the I/O queue the moment an operation finishes. In reality, the Event Loop must specifically **poll** for these completed events during a specific phase of its cycle.
+
+---
+
+## 2. The `setImmediate` Function
+
+To understand the interaction between I/O and subsequent phases, we introduce `setImmediate`.
+
+- **Purpose:** Queues a callback to run in the **Check Queue**.
+- **Execution Order:** The Check Queue runs immediately after the I/O phase (and its associated polling).
+
+---
+
+## 3. I/O Polling: Experiments & Inferences
+
+### A. Experiment 9: The I/O vs. Check Queue Mystery
+
+This experiment demonstrates a non-obvious behavior where a "later" queue appears to run before the I/O queue.
+
+**Code:**
+
+```javascript
+const fs = require('fs');
+
+fs.readFile(__filename, () => {
+  console.log('this is read file 1');
+});
+
+process.nextTick(() => console.log('this is process.nextTick 1'));
+Promise.resolve().then(() => console.log('this is Promise.resolve 1'));
+setTimeout(() => console.log('this is setTimeout 1'), 0);
+setImmediate(() => console.log('this is setImmediate 1'));
+
+for (let i = 0; i < 2000000000; i++) {} // Busy wait
+```
+
+**Output:**
+
+```
+this is process.nextTick 1
+this is Promise.resolve 1
+this is setTimeout 1
+this is setImmediate 1
+this is read file 1
+```
+
+**The Mystery:** Even though the I/O Queue physically sits _before_ the Check Queue in the event loop diagram, `setImmediate` logs _before_ `read file`.
+
+---
+
+## 4. Explaining the "Under the Hood" Flow
+
+The reason for the output above is the timing of when callbacks are actually "enqueued":
+
+1. **Initialization:** Callbacks are registered for `nextTick`, `Promise`, `setTimeout`, `readFile`, and `setImmediate`.
+2. **Microtasks & Timers:** The loop executes `nextTick`, then `Promise`, then the expired `setTimeout`.
+3. **Entering the I/O Phase:** When the loop enters the I/O phase, the **I/O Queue is actually empty**. Even though the file read is technically "done" (due to our busy-wait), its callback hasn't been moved into the queue yet.
+4. **The Polling Phase:** The loop moves into the **Polling** section. It polls the system, sees that `readFile` is complete, and _now_ adds the callback to the I/O Queue.
+5. **Moving to Check Queue:** However, the execution flow has already passed the "execute I/O queue" step. It moves directly to the **Check Queue** and executes `setImmediate 1`.
+6. **Second Tick:** The loop finishes the iteration and starts a new one. It passes through Microtasks and Timers (empty), reaches the I/O Queue, finds the callback added in the previous poll, and finally logs `read file 1`.
+
+**Inference:** I/O events are polled and callbacks are added to the I/O queue **only after** the I/O operation is complete, often resulting in them being executed in the _following_ iteration of the loop if a `setImmediate` is present.
+
+---
+
+## 💡 Modern Context & Gaps (Node v22+)
+
+### Polling Wait Time
+
+In a real application (without a busy-wait loop), if the Event Loop reaches the Polling phase and there are no expired timers and no `setImmediate` callbacks, it will actually **block and wait** at the Poll phase for I/O to complete, rather than spinning aimlessly. This is how Node remains power-efficient.
+
+### `setImmediate` vs `setTimeout(..., 0)`
+
+- If you call both in the main module, the order is non-deterministic (as seen in earlier notes).
+- **Key Insight:** If you call both inside an **I/O callback**, `setImmediate` will **always** run first because the Check phase immediately follows the I/O phase.
+
+### `fs.readFile` vs `fs.readSync`
+
+Using the Synchronous version (`readSync`) bypasses the Event Loop entirely by blocking the Call Stack. This prevents any Polling or Check Queue execution until the file is fully read, which is why it's discouraged for high-performance servers.
+
+---
