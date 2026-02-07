@@ -107,7 +107,7 @@ Always be mindful of _what_ you are exporting. If you export an object, be prepa
 
 ### Why `require()` understands the file without `.js` extension but ESM import doesn't?
 
-It’s a great observation! This difference highlights a fundamental shift in how Node.js handles files between the older **CommonJS (CJS)** and the newer **ES Modules (ESM)**.
+This difference highlights a fundamental shift in how Node.js handles files between the older **CommonJS (CJS)** and the newer **ES Modules (ESM)**.
 
 > **The Short Answer:** CommonJS was designed with **"magic" resolution** for developer convenience, while ES Modules were designed for **"explicit" resolution** to ensure high performance and web compatibility.
 
