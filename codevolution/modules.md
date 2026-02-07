@@ -31,7 +31,7 @@ console.log('Local module is imported above');
 ### `module.exports`
 
 - When we want to expose only a specific property and keep other things private to a module, we use an object `module.exports` and assign the required property/function/object that need to be exposed.
-- That exposed value will be available as return type of `require()` where ever this module is imported.
+- That exposed value **will be available as return type of `require()`** where-ever this module is imported.
 - This increases the reusability of code.
 - Also, in the module where it is imported the name can be anything i.e.
 

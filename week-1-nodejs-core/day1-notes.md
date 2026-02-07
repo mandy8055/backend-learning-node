@@ -5,8 +5,7 @@
 1. What makes Node.js different from running JavaScript in Chrome?
 
    There are mainly 3 differences between NodeJs and browser environment:
-
-   1. There are APIs which are available in browser through `window` and `document` objects which is not available in NodeJs adn similarly there are APIs which handles filesystems which are available in NodeJs but not in browser.
+   1. There are APIs which are available in browser through `window` and `document` objects which is not available in NodeJs and similarly there are APIs which handles filesystems which are available in NodeJs but not in browser.
    2. In NodeJs we can use both commonJs and module syntax i.e. `import` and `require` but in in browser we mainly use module syntax.
    3. It is easier to define the environment of NodeJs since we can control that our nodejs application runs on which version and all so we can use the latest es features which is supported by that version, but we cannot do the same for browser since we cannot know which browser our end-users use. We need babel in browser for overcoming this limitation which we do not need for NodeJs.
 
@@ -20,7 +19,6 @@
    **CPU-Intensive:** Node.js is bad for heavy computation (e.g., video encoding, complex math). Since JS runs on a **single main thread**, a heavy calculation will "block" the thread, preventing the server from responding to any other requests until the math is finished.
 
 4. What are some examples of things Node.js can do that browser JavaScript cannot?
-
    1. NodeJs can communicate to underlying file-system of the OS which the browser cannot.
    2. It can interact with the I/O devices attached to the OS which browser cannot.
    3. It can be used to spawn up the server and work on server-side stuffs which browser Javascript cannot.
@@ -34,12 +32,10 @@
 1. What is `__dirname` and `__filename`?
 
    **In CommonJS (require/module.exports):**
-
    - `__dirname`: Absolute path of the directory containing the current module file (string).
    - `__filename`: Absolute path of the current module file, with symlinks resolved (string).
 
    **In ES Modules (import/export):**
-
    - `import.meta.dirname`: Equivalent to `__dirname` (Node.js v20.11.0+, v21.2.0+)
    - `import.meta.filename`: Equivalent to `__filename` (Node.js v20.11.0+, v21.2.0+)
    - `import.meta.url`: File URL of the current module (e.g., `file:///path/to/file.mjs`)
@@ -92,7 +88,6 @@ console.log(__filename);
    The `process` object is a global that provides information and control over the current Node.js process. It is an instance of EventEmitter.
 
    Key properties/methods:
-
    - `process.env`: Environment variables
    - `process.argv`: Command-line arguments
    - `process.cwd()`: Current working directory
@@ -103,7 +98,6 @@ console.log(__filename);
 3. What is `global` in Node.js? How is it different from `window` in the browser?
 
    Both are the **global namespace objects** in their respective environments:
-
    - In Node.js: `global` is the top-level object. Variables declared with `var` in the global scope are NOT automatically attached to `global` (unlike browser).
    - In browser: `window` is the top-level object. Variables declared with `var` ARE attached to `window`.
 
@@ -124,7 +118,6 @@ In Node.js, each file is a module with its own scope, so `var` doesn't pollute t
 ## Module Systems: CommonJS vs. ES Modules
 
 1. The **Module Boundary Rule** Node.js treats a file as either CommonJS (CJS) or an ES Module (ESM). They are mutually exclusive in a single file.
-
    - CJS Trigger: Default behavior in `.js` files, or use of `require/module.exports`.
 
    - ESM Trigger: Use of `import/export` keywords, `import.meta`, or setting "type": "module" in package.json.
