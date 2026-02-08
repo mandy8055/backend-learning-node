@@ -29,6 +29,7 @@ export default class EventEmitter {
   emit(eventName, ...args) {
     const listeners = this.subscriptions.get(eventName);
     if (!listeners) return false;
+    // Read the notes for understanding why snapshot is used in events-module.md
     const snapshot = [...listeners];
     snapshot.forEach((l) => l.call(this, ...args));
     return true;

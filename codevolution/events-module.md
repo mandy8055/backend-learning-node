@@ -95,3 +95,45 @@ By learning this pattern, you understand how the core of Node.js communicates in
 
 - **Event-Driven Architecture** is excellent for decoupling modules. For example, a `DrinkMachine` module can listen for a `PizzaShop` event without the `PizzaShop` ever needing to know the `DrinkMachine` exists.
 - Always call `super()` in the constructor when extending `EventEmitter`, or the event methods won't be initialized properly!
+
+### Event Emitter Snapshot Pattern
+
+#### Real-World Analogy
+
+Imagine you're a **teacher** giving high-fives to 5 students in a line.
+
+**Without Snapshot:**
+
+1. You high-five Student #1
+2. Student #1 leaves the room
+3. Everyone shifts up one spot (Student #2 is now where #1 was)
+4. You move to "Spot #2," but you actually high-five Student #3
+5. **Result:** You accidentally skipped Student #2!
+
+**With Snapshot:**
+Take a photo of the line before starting. Even if students leave, you follow your photo and high-five everyone who was originally there.
+
+#### Code Example
+
+```typescript
+// WITHOUT SNAPSHOT - The Bug:
+const fn1 = () => {
+  console.log("Running 1");
+  emitter.off('test', fn1); // Removes itself
+};
+
+const fn2 = () => console.log("Running 2");
+
+// Loop at index 0: calls fn1
+// fn1 removes itself, array becomes [fn2]
+// Loop moves to index 1 (empty!)
+// RESULT: fn2 never runs
+
+// WITH SNAPSHOT - The Fix:
+emit(event: string, ...args: any[]) {
+  const snapshot = [...listeners]; // Copy the array
+  snapshot.forEach(listener => listener(...args));
+}
+```
+
+**Key Point:** The snapshot prevents listeners from being skipped when they modify the listener array during emission.
