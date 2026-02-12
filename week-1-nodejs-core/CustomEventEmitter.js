@@ -1,6 +1,6 @@
-export default class EventEmitter {
+class CustomEventEmitter {
   constructor() {
-    this.subscriptions = new Map();
+    this.subscriptions = new Map(); // Map<eventName, Array<Listeners>>
   }
 
   on(eventName, listener) {
@@ -11,12 +11,25 @@ export default class EventEmitter {
     return this;
   }
 
+  once(eventName, listener) {
+    const wrapperFunction = (...args) => {
+      this.off(eventName, wrapperFunction);
+      listener.call(this, ...args);
+    };
+
+    wrapperFunction.originalFunction = listener;
+    return this.on(eventName, wrapperFunction);
+  }
+
   off(eventName, listener) {
     const listeners = this.subscriptions.get(eventName);
     if (!listeners) return this;
-    const index = listeners.indexOf(listener);
-    if (index !== -1) {
-      listeners.splice(index, 1);
+    const idx = listeners.findIndex(
+      (l) => l === listener || l.originalFunction === listener,
+    );
+
+    if (idx !== -1) {
+      listeners.splice(idx, 1);
     }
 
     if (listeners.length === 0) {
@@ -29,7 +42,6 @@ export default class EventEmitter {
   emit(eventName, ...args) {
     const listeners = this.subscriptions.get(eventName);
     if (!listeners) return false;
-    // Read the notes for understanding why snapshot is used in events-module.md
     const snapshot = [...listeners];
     snapshot.forEach((l) => l.call(this, ...args));
     return true;
