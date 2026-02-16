@@ -159,3 +159,7 @@ console.log(Buffer.from(str).length); // 4 (Actual bytes in UTF-8)
 ```
 
 **NOTE:** Always use `Buffer.byteLength(string)` if you need to know how much memory a string will occupy in a buffer.
+
+### Pro-tip to keep it in your mind
+
+A **character** is something we see on the screen, but since computers can only store 0s and 1s, **Unicode** first assigns every character a unique **numeric code point**, and then an **encoding** like UTF-8 or UTF-16 _**converts that code point into actual bytes**_ that can be stored in memory, where JavaScript strings use UTF-16 internally and count its code units while Node.js Buffers store and operate on the real UTF-8 encoded bytes that represent the character in memory, files, or network transmission.
