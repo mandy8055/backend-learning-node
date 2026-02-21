@@ -338,13 +338,11 @@ Tasks: ['Deploy app']
 Create THREE separate classes:
 
 1. **`PizzaShop`** (extends EventEmitter)
-
    - Has `order(size, topping)` method
    - Emits 'order' event with size and topping
    - Tracks order number internally
 
 2. **`DrinkMachine`** (extends EventEmitter)
-
    - Listens to pizza orders
    - Automatically selects drink based on pizza size
    - Emits 'drinkServed' event
@@ -845,7 +843,7 @@ curl http://localhost:3000/nonexistent.html
 
 ```javascript
 // DANGEROUS - Don't allow this!
-curl http://localhost:3000/../server.js
+curl --path-as-is http://localhost:3000/../server.js
 // Should return 403 Forbidden, not serve the file!
 ```
 
